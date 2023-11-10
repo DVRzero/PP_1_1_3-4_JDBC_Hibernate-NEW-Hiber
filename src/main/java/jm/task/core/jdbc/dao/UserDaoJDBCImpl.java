@@ -16,7 +16,7 @@ public class UserDaoJDBCImpl implements UserDao {
             "  `lastName` VARCHAR(45) NULL,\n" +
             "  `age` INT NULL,\n" +
             "        PRIMARY KEY (`id`))";
-    private final static String DROP = "DROP TABLE IF EXIST `users`";
+    private final static String DROP = "DROP TABLE IF EXISTS `users`";
     private final static String ADD = "INSERT INTO `users` (name, lastName, age) values(?,?,?)";
     private final static String REMOVE_USER = "DELETE FROM `users` WHERE `id` = ?";
     private final static String SELECT = "SELECT * FROM `users`";
@@ -27,9 +27,9 @@ public class UserDaoJDBCImpl implements UserDao {
     }
 
     public void createUsersTable() {
-        try(Statement  stm = connection.createStatement()) {
+        try(PreparedStatement  stm = connection.prepareStatement(CREATE_TABLE)) {
             connection.setAutoCommit(false);
-            stm.executeUpdate(CREATE_TABLE);
+            stm.executeUpdate();
             connection.commit();
             System.out.println("Таблица создана");
         } catch (SQLException e) {
@@ -105,18 +105,32 @@ public class UserDaoJDBCImpl implements UserDao {
                 String lastName = resultSet.getString("lastName");
                 byte age = resultSet.getByte("age");
                 System.out.println("--------------------------------");
-                System.out.println(resultSet.toString());
+                System.out.println("User ID:" + id);
+                System.out.println("User name:" + name);
+                System.out.println("User lastName:" + lastName);
+                System.out.println("User age:" + age);
+                users.add(new User(name, lastName, age));
             }
         } catch (SQLException e) {
-            throw new RuntimeException(e);
+            System.out.println("Ошибка получения пользователей из БД" + e.getMessage());
+            return null;
         }
         return users;
     }
 
     public void cleanUsersTable() {
-        try(Statement stm = connection.createStatement()) {
+        try (PreparedStatement stm = connection.prepareStatement(DELETE)) {
             connection.setAutoCommit(false);
-
+            stm.executeUpdate();
+            connection.commit();
+            System.out.println("БД успешно очищена");
+        } catch (SQLException e) {
+            try {
+                connection.rollback();
+            } catch (SQLException ex) {
+                throw new RuntimeException(ex);
+            }
+            System.out.println("Ошибка очистки БД" + e.getMessage());
         }
     }
 }
